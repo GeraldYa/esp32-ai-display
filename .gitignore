@@ -1,0 +1,22 @@
+# Build artifacts
+build/
+*.o
+*.elf
+*.bin
+*.map
+
+# IDE
+.vscode/
+*.swp
+*.swo
+
+# Server
+node_modules/
+*.log
+
+# Test audio
+server/audio/
+
+# OS
+.DS_Store
+Thumbs.db
