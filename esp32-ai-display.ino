@@ -405,6 +405,11 @@ void drawStatusBar() {
     tft.print(buf);
   }
 
+  // Language indicator (tap area 400-430, y<18)
+  tft.setTextColor(C_ACCENT);
+  tft.setCursor(405, 5);
+  tft.print(langZh ? "ZH" : "EN");
+
   // Data status indicator
   if (dataLoaded) {
     tft.fillCircle(470, 9, 3, C_GREEN);
@@ -420,7 +425,11 @@ void drawNavBar() {
   tft.drawFastHLine(0, y, 480, C_DIVIDER);
 
   tft.setFreeFont(NULL);  // Reset font before drawing nav
-  const char* labels[] = {"Weather", "Stocks", "News"};
+  const char* labels[] = {
+    langZh ? "\xe5\xa4\xa9\xe6\xb0\x94" : "Weather",   // 天气
+    langZh ? "\xe8\x82\xa1\xe7\xa5\xa8" : "Stocks",     // 股票
+    langZh ? "\xe6\x96\xb0\xe9\x97\xbb" : "News"        // 新闻
+  };
   int tabW = 480 / NAV_TAB_COUNT;
 
   for (int i = 0; i < NAV_TAB_COUNT; i++) {
@@ -442,11 +451,19 @@ void drawNavBar() {
     }
 
     // Label
-    tft.setTextColor(textCol);
-    tft.setTextSize(1);
-    int tw = strlen(labels[i]) * 6;
-    tft.setCursor(iconX - tw / 2, y + 22);
-    tft.print(labels[i]);
+    if (langZh) {
+      u8g2Fonts.setFont(u8g2_font_wqy16_t_gb2312);
+      u8g2Fonts.setFontMode(1);
+      int tw = u8g2Fonts.getUTF8Width(labels[i]);
+      u8g2Fonts.setForegroundColor(textCol);
+      u8g2Fonts.drawUTF8(iconX - tw / 2, y + 26, labels[i]);
+    } else {
+      tft.setTextColor(textCol);
+      tft.setTextSize(1);
+      int tw = strlen(labels[i]) * 6;
+      tft.setCursor(iconX - tw / 2, y + 22);
+      tft.print(labels[i]);
+    }
   }
 }
 
@@ -476,13 +493,26 @@ void drawClockScreen() {
 
     // Details (bottom-right)
     tft.setFreeFont(&FreeSans9pt7b);
-    char buf[32];
-    sprintf(buf, "Feels %d°C", weather.feels_like);
-    drawOutlinedText(300, 230, buf, C_TEXT);
-    sprintf(buf, "H %d° / L %d°", weather.high, weather.low);
-    drawOutlinedText(300, 248, buf, C_TEXT);
-    sprintf(buf, "Humid %d%%  Wind %d km/h", weather.humidity, weather.wind);
-    drawOutlinedText(300, 266, buf, C_TEXT_DIM);
+    char buf[48];
+    if (langZh) {
+      sprintf(buf, "%d°C", weather.feels_like);
+      drawOutlinedText(300, 230, buf, C_TEXT);
+      u8g2Fonts.setFont(u8g2_font_wqy16_t_gb2312);
+      u8g2Fonts.setFontMode(1);
+      drawOutlinedUTF8(340, 230, "\xe4\xbd\x93\xe6\x84\x9f", C_TEXT);  // 体感
+      sprintf(buf, "%d° / %d°", weather.high, weather.low);
+      drawOutlinedText(300, 248, buf, C_TEXT);
+      sprintf(buf, "\xe6\xb9\xbf\xe5\xba\xa6%d%%  \xe9\xa3\x8e%dkm/h", weather.humidity, weather.wind);
+      u8g2Fonts.setFont(u8g2_font_wqy16_t_gb2312);
+      drawOutlinedUTF8(300, 266, buf, C_TEXT_DIM);  // 湿度/风
+    } else {
+      sprintf(buf, "Feels %d°C", weather.feels_like);
+      drawOutlinedText(300, 230, buf, C_TEXT);
+      sprintf(buf, "H %d° / L %d°", weather.high, weather.low);
+      drawOutlinedText(300, 248, buf, C_TEXT);
+      sprintf(buf, "Humid %d%%  Wind %d km/h", weather.humidity, weather.wind);
+      drawOutlinedText(300, 266, buf, C_TEXT_DIM);
+    }
 
     // City
     sprintf(buf, "@ %s", weather.city);
@@ -534,12 +564,18 @@ void drawStocksScreen() {
   }
 
   // Title
-  tft.setFreeFont(&FreeSansBold12pt7b);
-  drawOutlinedText(20, 45, "Market Watch", C_TEXT);
+  if (langZh) {
+    u8g2Fonts.setFont(u8g2_font_wqy16_t_gb2312);
+    u8g2Fonts.setFontMode(1);
+    drawOutlinedUTF8(20, 45, "\xe8\xa1\x8c\xe6\x83\x85", C_TEXT);  // 行情
+  } else {
+    tft.setFreeFont(&FreeSansBold12pt7b);
+    drawOutlinedText(20, 45, "Market Watch", C_TEXT);
+  }
 
   if (!dataLoaded) {
     tft.setFreeFont(&FreeSans9pt7b);
-    drawOutlinedText(180, 160, "Loading...", C_TEXT_DIM);
+    drawOutlinedText(180, 160, langZh ? "Loading..." : "Loading...", C_TEXT_DIM);
     return;
   }
 
@@ -588,8 +624,14 @@ void drawNewsScreen() {
   }
 
   // Title
-  tft.setFreeFont(&FreeSansBold12pt7b);
-  drawOutlinedText(20, 45, "Headlines", C_TEXT);
+  if (langZh) {
+    u8g2Fonts.setFont(u8g2_font_wqy16_t_gb2312);
+    u8g2Fonts.setFontMode(1);
+    drawOutlinedUTF8(20, 45, "\xe5\xa4\xb4\xe6\x9d\xa1", C_TEXT);  // 头条
+  } else {
+    tft.setFreeFont(&FreeSansBold12pt7b);
+    drawOutlinedText(20, 45, "Headlines", C_TEXT);
+  }
 
   // Language toggle button (top-right)
   tft.setFreeFont(&FreeSansBold9pt7b);
@@ -721,8 +763,14 @@ void drawNewsDetailScreen() {
   if (newsDetailIdx < 0 || newsDetailIdx >= newsCount) return;
 
   // Back button (larger, visible)
-  tft.setFreeFont(&FreeSansBold9pt7b);
-  drawOutlinedText(15, 38, "< Back", C_ACCENT);
+  if (langZh) {
+    u8g2Fonts.setFont(u8g2_font_wqy16_t_gb2312);
+    u8g2Fonts.setFontMode(1);
+    drawOutlinedUTF8(15, 38, "< \xe8\xbf\x94\xe5\x9b\x9e", C_ACCENT);  // < 返回
+  } else {
+    tft.setFreeFont(&FreeSansBold9pt7b);
+    drawOutlinedText(15, 38, "< Back", C_ACCENT);
+  }
 
   if (langZh && strlen(news[newsDetailIdx].title_zh) > 0) {
     // Chinese detail view
@@ -906,6 +954,9 @@ void setup() {
   delay(1000);
   tft.fillScreen(TFT_BLACK);
   screenNeedsRedraw = true;
+
+  tft.fillScreen(TFT_BLACK);
+  screenNeedsRedraw = true;
 }
 
 // ============ Main Loop ============
@@ -942,8 +993,15 @@ void loop() {
     int sx = tp.y;
     int sy = 319 - tp.x;
 
+    // Global language toggle (status bar area, x>400 y<18)
+    if (sy < 18 && sx > 400) {
+      langZh = !langZh;
+      screenNeedsRedraw = true;
+      lastMinute = -1;  // Force clock redraw
+      Serial.printf("[Lang] Switched to %s\n", langZh ? "Chinese" : "English");
+    }
     // Nav bar tap
-    if (sy > 284) {
+    else if (sy > 284) {
       int tabW = 480 / NAV_TAB_COUNT;
       int tabIdx = sx / tabW;
       if (tabIdx >= 0 && tabIdx < NAV_TAB_COUNT) {
@@ -955,17 +1013,6 @@ void loop() {
           lastSecond = -1;
         }
       }
-    }
-    // News screen: language toggle (top-right, x>400 y<55)
-    else if (currentScreen == SCREEN_NEWS && sx > 400 && sy < 55) {
-      langZh = !langZh;
-      screenNeedsRedraw = true;
-      Serial.printf("[Lang] Switched to %s\n", langZh ? "Chinese" : "English");
-    }
-    // News detail: language toggle (same area)
-    else if (currentScreen == SCREEN_NEWS_DETAIL && sx > 400 && sy < 55) {
-      langZh = !langZh;
-      screenNeedsRedraw = true;
     }
     // News list: tap on article to open detail
     else if (currentScreen == SCREEN_NEWS && sy >= 62 && sy < 62 + 5 * 42) {

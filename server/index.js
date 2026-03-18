@@ -1,9 +1,11 @@
 const express = require('express');
 const RSSParser = require('rss-parser');
 const path = require('path');
+const fs = require('fs');
 const app = express();
 const PORT = 3100;
 const rss = new RSSParser();
+app.use(express.json());
 
 // ============ Cache ============
 let cache = {
@@ -209,19 +211,52 @@ app.get('/api/ping', (req, res) => res.json({ status: "ok" }));
 // Preview UI
 app.get('/preview', (req, res) => res.sendFile(path.resolve(__dirname, 'preview.html'), { dotfiles: 'allow' }));
 
-// Background images - weather bg changes based on current weather icon
+// Background images - rotate hourly from multiple variants
 const BG_DIR = path.resolve(__dirname, 'backgrounds');
-const WEATHER_BG_MAP = {
-  sun: 'weather_clear.jpg', cloud: 'weather_cloud.jpg', fog: 'weather_cloud.jpg',
-  rain: 'weather_rain.jpg', snow: 'weather_snow.jpg', storm: 'weather_storm.jpg',
+const WEATHER_ICON_MAP = {
+  sun: 'weather_clear', cloud: 'weather_cloud', fog: 'weather_cloud',
+  rain: 'weather_rain', snow: 'weather_snow', storm: 'weather_storm',
 };
+
+// Find all variants for a given prefix (e.g. "stocks" -> ["stocks_1.jpg", "stocks_2.jpg", ...])
+function getBgVariants(prefix) {
+  try {
+    return fs.readdirSync(BG_DIR)
+      .filter(f => f.startsWith(prefix + '_') && f.endsWith('.jpg'))
+      .sort();
+  } catch { return []; }
+}
+
+// Pick variant based on current minute (rotates every minute)
+function pickBgByMinute(prefix) {
+  let variants = getBgVariants(prefix);
+  if (variants.length === 0) {
+    const single = prefix + '.jpg';
+    if (fs.existsSync(path.join(BG_DIR, single))) return single;
+    return null;
+  }
+  const now = new Date();
+  const minuteOfDay = now.getHours() * 60 + now.getMinutes();
+  return variants[minuteOfDay % variants.length];
+}
+
 app.get('/api/bg/weather', async (req, res) => {
   const w = cache.weather || await fetchWeather();
-  const file = WEATHER_BG_MAP[w.icon] || 'weather_cloud.jpg';
-  res.sendFile(path.join(BG_DIR, file), { dotfiles: 'allow' });
+  const prefix = WEATHER_ICON_MAP[w.icon] || 'weather_cloud';
+  const file = pickBgByMinute(prefix);
+  if (file) res.sendFile(path.join(BG_DIR, file), { dotfiles: 'allow' });
+  else res.status(404).send('No background');
 });
-app.get('/api/bg/stocks', (req, res) => res.sendFile(path.join(BG_DIR, 'stocks.jpg'), { dotfiles: 'allow' }));
-app.get('/api/bg/news', (req, res) => res.sendFile(path.join(BG_DIR, 'news.jpg'), { dotfiles: 'allow' }));
+app.get('/api/bg/stocks', (req, res) => {
+  const file = pickBgByMinute('stocks');
+  if (file) res.sendFile(path.join(BG_DIR, file), { dotfiles: 'allow' });
+  else res.status(404).send('No background');
+});
+app.get('/api/bg/news', (req, res) => {
+  const file = pickBgByMinute('news');
+  if (file) res.sendFile(path.join(BG_DIR, file), { dotfiles: 'allow' });
+  else res.status(404).send('No background');
+});
 
 // Audio files
 const AUDIO_DIR = path.resolve(__dirname, 'audio');
