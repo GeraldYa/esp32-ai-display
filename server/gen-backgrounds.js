@@ -1,10 +1,11 @@
+require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
 const dir = path.resolve(__dirname, 'backgrounds');
 
 const API_URL = 'https://api.tokentrove.co/v1beta/models/gemini-3.1-flash-image-preview:generateContent';
-const API_KEY = 'REDACTED_API_KEY';
+const API_KEY = process.env.GEMINI_API_KEY;
 
 const STYLE_BASE = `Technical requirements:
 - Exact resolution: 480x266 pixels (widescreen landscape)

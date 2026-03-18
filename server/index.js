@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const RSSParser = require('rss-parser');
 const path = require('path');
@@ -116,7 +117,7 @@ async function fetchStocks() {
 
 // ============ News (Google News RSS + AI summary) ============
 const GEMINI_URL = 'https://api.tokentrove.co/v1beta/models/gemini-3.1-flash-lite-preview:generateContent';
-const GEMINI_KEY = 'REDACTED_API_KEY';
+const GEMINI_KEY = process.env.GEMINI_API_KEY;
 
 async function callGemini(prompt) {
   try {
@@ -219,11 +220,15 @@ const WEATHER_ICON_MAP = {
 };
 
 // Find all variants for a given prefix (e.g. "stocks" -> ["stocks_1.jpg", "stocks_2.jpg", ...])
+const bgCache = {};
 function getBgVariants(prefix) {
+  if (bgCache[prefix]) return bgCache[prefix];
   try {
-    return fs.readdirSync(BG_DIR)
+    const variants = fs.readdirSync(BG_DIR)
       .filter(f => f.startsWith(prefix + '_') && f.endsWith('.jpg'))
       .sort();
+    bgCache[prefix] = variants;
+    return variants;
   } catch { return []; }
 }
 
@@ -261,7 +266,10 @@ app.get('/api/bg/news', (req, res) => {
 // Audio files
 const AUDIO_DIR = path.resolve(__dirname, 'audio');
 app.get('/api/audio/:name', (req, res) => {
-  res.sendFile(path.join(AUDIO_DIR, req.params.name), { dotfiles: 'allow' });
+  const name = path.basename(req.params.name);
+  const filePath = path.join(AUDIO_DIR, name);
+  if (!filePath.startsWith(AUDIO_DIR)) return res.status(400).send('Invalid path');
+  res.sendFile(filePath, { dotfiles: 'allow' });
 });
 
 app.listen(PORT, '0.0.0.0', () => {

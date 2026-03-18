@@ -13,6 +13,7 @@ build/
 # Server
 node_modules/
 *.log
+.env
 
 # Test audio
 server/audio/

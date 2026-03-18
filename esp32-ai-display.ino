@@ -574,8 +574,14 @@ void drawStocksScreen() {
   }
 
   if (!dataLoaded) {
-    tft.setFreeFont(&FreeSans9pt7b);
-    drawOutlinedText(180, 160, langZh ? "Loading..." : "Loading...", C_TEXT_DIM);
+    if (langZh) {
+      u8g2Fonts.setFont(u8g2_font_wqy16_t_gb2312);
+      u8g2Fonts.setFontMode(1);
+      drawOutlinedUTF8(180, 160, "\xe5\x8a\xa0\xe8\xbd\xbd\xe4\xb8\xad...", C_TEXT_DIM);  // 加载中...
+    } else {
+      tft.setFreeFont(&FreeSans9pt7b);
+      drawOutlinedText(180, 160, "Loading...", C_TEXT_DIM);
+    }
     return;
   }
 
@@ -952,9 +958,6 @@ void setup() {
   }
 
   delay(1000);
-  tft.fillScreen(TFT_BLACK);
-  screenNeedsRedraw = true;
-
   tft.fillScreen(TFT_BLACK);
   screenNeedsRedraw = true;
 }
