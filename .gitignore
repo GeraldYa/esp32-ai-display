@@ -10,10 +10,13 @@ build/
 *.swp
 *.swo
 
+# Secrets
+secrets.h
+.env
+
 # Server
 node_modules/
 *.log
-.env
 
 # Test audio
 server/audio/

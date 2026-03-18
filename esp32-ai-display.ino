@@ -15,10 +15,9 @@
 #include <Adafruit_GFX.h>
 #include <U8g2_for_Adafruit_GFX.h>
 #include <time.h>
+#include "secrets.h"  // WIFI_SSID, WIFI_PASSWORD (gitignored)
 
 // ============ Config ============
-#define WIFI_SSID       "work"
-#define WIFI_PASSWORD   "REDACTED_WIFI_PASS"
 #define API_BASE        "http://192.168.2.106:3100"
 #define API_DASHBOARD   API_BASE "/api/dashboard"
 #define API_BG_WEATHER  API_BASE "/api/bg/weather"
